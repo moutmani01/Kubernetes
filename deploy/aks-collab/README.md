@@ -1,6 +1,6 @@
 # AKS collaboration stack
 
-This deployment path uses an in-cluster PostgreSQL instance on AKS instead of Azure Database for PostgreSQL Flexible Server.
+This deployment path uses an in-cluster PostgreSQL instance on AKS.
 
 ## PostgreSQL
 
@@ -48,6 +48,4 @@ This is where the deployment work was left:
 
 ## Notes
 
-- The existing Terraform stack in `terraform/demo-aks` still contains Azure Flexible Server resources from the earlier approach. Do not re-apply it expecting the in-cluster PostgreSQL path until that stack is refactored separately.
-- The already-created Azure Flexible Server can be removed later once you confirm you no longer want it.
 - Local generated secrets/state stay under `deploy/aks-collab/.local/` and are git-ignored on purpose.
