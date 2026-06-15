@@ -1,4 +1,6 @@
 locals {
+  # App list is only used for the Azure PostgreSQL path in this stack.
+  # The newer AKS-local PostgreSQL deployment lives under deploy/aks-collab/.
   apps = {
     openproject = {}
     docmost     = {}
@@ -6,7 +8,8 @@ locals {
   }
 
   normalized_cluster_name = replace(lower(var.cluster_name), " ", "-")
-  name_prefix             = substr(local.normalized_cluster_name, 0, 24)
+  # Azure names have tighter length limits than the human-friendly cluster name.
+  name_prefix = substr(local.normalized_cluster_name, 0, 24)
 
   default_tags = {
     project     = "collaboration-tools"
@@ -15,7 +18,9 @@ locals {
     repository  = "moutmani01/Kubernetes"
   }
 
-  merged_tags              = merge(local.default_tags, var.tags)
+  merged_tags                = merge(local.default_tags, var.tags)
+  # Allows AKS to stay in one region while PostgreSQL Flexible Server uses another
+  # when Azure restricts PostgreSQL offers in the AKS region.
   effective_postgres_location = coalesce(var.postgres_location, var.location)
 }
 
@@ -33,6 +38,8 @@ resource "random_string" "suffix" {
   special = false
 }
 
+# Keep the PostgreSQL server suffix separate from the AKS suffix.
+# This avoids name reuse/collision headaches when Azure holds onto old server names.
 resource "random_string" "postgres_suffix" {
   length  = 7
   upper   = false
@@ -52,6 +59,8 @@ resource "random_password" "app_passwords" {
   override_special = "!@#%^*-_"
 }
 
+# Reuse the existing resource group instead of trying to create/import it.
+# Import was awkward here because the postgresql provider depends on apply-time values.
 data "azurerm_resource_group" "main" {
   name = var.resource_group_name
 }
@@ -84,6 +93,8 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   lifecycle {
+    # Azure/provider refresh can introduce noisy drift here; ignore it so Terraform
+    # does not try to rotate the AKS default node pool for this field alone.
     ignore_changes = [
       default_node_pool[0].upgrade_settings,
     ]
@@ -92,6 +103,9 @@ resource "azurerm_kubernetes_cluster" "main" {
   role_based_access_control_enabled = true
 }
 
+# NOTE: this Azure Flexible Server path still exists in Terraform because it was part
+# of the original approach. The current Kubernetes app deployment flow was later
+# switched to an in-cluster PostgreSQL release under deploy/aks-collab/.
 resource "azurerm_postgresql_flexible_server" "main" {
   name                          = "${local.name_prefix}-pg-${random_string.postgres_suffix.result}"
   resource_group_name           = data.azurerm_resource_group.main.name
@@ -114,8 +128,10 @@ resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure_service
 }
 
 resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_current_client" {
-  name             = "allow-current-client"
-  server_id        = azurerm_postgresql_flexible_server.main.id
+  name      = "allow-current-client"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  # Uses the public IP seen by Terraform at apply time so local provider operations
+  # can connect to the server during provisioning.
   start_ip_address = trimspace(data.http.current_ip.response_body)
   end_ip_address   = trimspace(data.http.current_ip.response_body)
 }

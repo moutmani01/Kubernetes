@@ -4,7 +4,7 @@ variable "subscription_id" {
 }
 
 variable "location" {
-  description = "Azure region for all resources."
+  description = "Primary Azure region for the demo environment. AKS currently lives here."
   type        = string
   default     = "eastus"
 }
@@ -46,7 +46,7 @@ variable "aks_vm_size" {
 }
 
 variable "postgres_location" {
-  description = "Azure region for PostgreSQL Flexible Server. Defaults to the main location when null."
+  description = "Optional alternate Azure region for PostgreSQL Flexible Server when the main region is restricted."
   type        = string
   default     = null
 }

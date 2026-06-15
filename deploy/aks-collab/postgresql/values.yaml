@@ -1,5 +1,9 @@
+# Shared PostgreSQL instance for the collaboration apps running in AKS.
+# Secrets are created locally by deploy/aks-collab/scripts/install-postgresql.ps1
+# and are intentionally not stored in Git.
 fullnameOverride: collab-postgresql
 
+# Single-instance demo deployment. This is the simpler path for the current AKS setup.
 architecture: standalone
 
 auth:
@@ -11,6 +15,7 @@ auth:
 primary:
   persistence:
     enabled: true
+    # Enough room for a demo stack without overcommitting storage too much.
     size: 20Gi
   resources:
     requests:
@@ -20,11 +25,14 @@ primary:
       cpu: 1000m
       memory: 1Gi
 
+# Azure CSI permissions were fine without the extra helper container in this setup.
 volumePermissions:
   enabled: false
 
+# TLS is terminated at ingress for now; PostgreSQL stays cluster-internal.
 tls:
   enabled: false
 
+# Keep the initial demo footprint smaller unless monitoring is explicitly needed.
 metrics:
   enabled: false

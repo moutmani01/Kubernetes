@@ -6,6 +6,11 @@ This Terraform stack prepares the Azure infrastructure for:
 - three PostgreSQL databases: `openproject`, `docmost`, `passbolt`
 - three PostgreSQL users with generated passwords, one per app
 
+> Status note: this Terraform stack reflects the original Azure-managed PostgreSQL path.
+> The newer app deployment work later pivoted to an in-cluster PostgreSQL release under
+> `deploy/aks-collab/` because that was simpler for the AKS app deployment flow.
+> Keep that distinction in mind before re-running `terraform apply`.
+
 ## Inputs already baked in from Mahfoud's current request
 - Subscription: `42c20bc6-0b17-4863-9dd7-36fb9fb16729`
 - Region: `eastus`
@@ -20,13 +25,14 @@ This stack normalizes the cluster name to:
 `infra-collaboration-tools`
 
 ## What this stack does not do yet
-This first pass only creates the Azure infrastructure.
-The app deployment layer still needs to be added next:
-- official Helm install for OpenProject
-- official Helm install for Docmost
-- official Helm install for Passbolt
-- Kubernetes secrets / values wiring to the PostgreSQL credentials
-- ingress / TLS / DNS choices
+This stack only creates the Azure infrastructure.
+The Kubernetes app deployment flow now lives separately under `deploy/aks-collab/`.
+That second path handles:
+- Helm install automation for OpenProject
+- Helm install automation for Docmost
+- Helm install automation for Passbolt
+- Kubernetes secrets / generated values wiring
+- ingress / TLS / `nip.io` hostname setup
 
 ## Suggested next commands
 ```powershell
