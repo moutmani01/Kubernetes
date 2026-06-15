@@ -20,3 +20,6 @@ terraform.tfvars.json
 # Editor / OS
 .DS_Store
 Thumbs.db
+
+# Local deployment scratch
+deploy/aks-collab/.local/

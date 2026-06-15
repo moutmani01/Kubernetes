@@ -45,6 +45,12 @@ variable "aks_vm_size" {
   default     = "Standard_B2s"
 }
 
+variable "postgres_location" {
+  description = "Azure region for PostgreSQL Flexible Server. Defaults to the main location when null."
+  type        = string
+  default     = null
+}
+
 variable "postgres_sku_name" {
   description = "Azure Database for PostgreSQL Flexible Server SKU. Cheap burstable default for demo use."
   type        = string

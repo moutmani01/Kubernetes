@@ -1,0 +1,30 @@
+fullnameOverride: collab-postgresql
+
+architecture: standalone
+
+auth:
+  enablePostgresUser: true
+  existingSecret: collab-postgresql-auth
+  secretKeys:
+    adminPasswordKey: postgres-password
+
+primary:
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+volumePermissions:
+  enabled: false
+
+tls:
+  enabled: false
+
+metrics:
+  enabled: false

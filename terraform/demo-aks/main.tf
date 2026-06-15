@@ -15,7 +15,8 @@ locals {
     repository  = "moutmani01/Kubernetes"
   }
 
-  merged_tags = merge(local.default_tags, var.tags)
+  merged_tags              = merge(local.default_tags, var.tags)
+  effective_postgres_location = coalesce(var.postgres_location, var.location)
 }
 
 data "http" "current_ip" {
@@ -28,6 +29,12 @@ data "http" "current_ip" {
 
 resource "random_string" "suffix" {
   length  = 5
+  upper   = false
+  special = false
+}
+
+resource "random_string" "postgres_suffix" {
+  length  = 7
   upper   = false
   special = false
 }
@@ -45,16 +52,14 @@ resource "random_password" "app_passwords" {
   override_special = "!@#%^*-_"
 }
 
-resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = local.merged_tags
+data "azurerm_resource_group" "main" {
+  name = var.resource_group_name
 }
 
 resource "azurerm_kubernetes_cluster" "main" {
   name                = local.normalized_cluster_name
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
+  resource_group_name = data.azurerm_resource_group.main.name
   dns_prefix          = "${local.name_prefix}-${random_string.suffix.result}"
   kubernetes_version  = var.kubernetes_version
   sku_tier            = "Free"
@@ -78,13 +83,19 @@ resource "azurerm_kubernetes_cluster" "main" {
     load_balancer_sku = "standard"
   }
 
+  lifecycle {
+    ignore_changes = [
+      default_node_pool[0].upgrade_settings,
+    ]
+  }
+
   role_based_access_control_enabled = true
 }
 
 resource "azurerm_postgresql_flexible_server" "main" {
-  name                          = "${local.name_prefix}-pg-${random_string.suffix.result}"
-  resource_group_name           = azurerm_resource_group.main.name
-  location                      = azurerm_resource_group.main.location
+  name                          = "${local.name_prefix}-pg-${random_string.postgres_suffix.result}"
+  resource_group_name           = data.azurerm_resource_group.main.name
+  location                      = local.effective_postgres_location
   version                       = var.postgres_version
   administrator_login           = var.postgres_admin_username
   administrator_password        = random_password.postgres_admin.result
